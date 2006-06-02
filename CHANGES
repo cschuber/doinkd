@@ -1,5 +1,12 @@
 Changes to doinkd.
 
+V 0.02
+======
+1. Added missing exempt statement to maxuser.
+
+2. Changed warn.c warning statements back to \r\n termination.
+
+
 V 0.01
 ======
 1. Change of name to doinkd.

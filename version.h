@@ -1,3 +1,3 @@
 /* Version.h for doinkd */
 
-#define IDLED_VERSION "doinkd version 0.01"
+#define IDLED_VERSION "doinkd version 0.02"

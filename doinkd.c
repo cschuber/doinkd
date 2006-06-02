@@ -663,7 +663,7 @@ void chk_maxuser(user, n_users)
        }
        grpcnt += tgrpcnt;
      }
-     if (grpcnt > user->maxuser) {
+	if (!((*pusers[who]).exempt & IS_MAXU) && (grpcnt > user->maxuser)) {
            debug(3,("expiring %s for %d in maxusers",user->uid,grpcnt));
            user->maxed = true;
            warn (who, IS_MAXU, DO_MSG);

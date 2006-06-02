@@ -227,14 +227,13 @@ void warn(i, type, do_msg)
             (
                termf,
                "%s%19.19s%s%d%s%s%s%s%s%s",
-               "\007\n\n\n\n",
+               "\007\r\n\r\n\r\n\r\n",
                ctime (&tempus),
-               "\nYou are only allowed ", him->maxuser," simultaneous logins\n",
-               "with you current account.  Please wait for other users in\n",
-               "your company to log-off, or contact Magna Computer Corp\n",
-               "at 407-352-2402 for additional licensing and pricing\n",
-               "information.\n\nThis session will end in ",
-               strtime (sleeptime, !SAY_MORE), ".\n\n\007"
+               "\r\nYou are only allowed ", him->maxuser," simultaneous logins\r\n",
+               "with your current account.  Please wait for other users in\r\n",
+               "your group to log-off and try again.\r\n",
+               "\r\nThis session will end in ",
+               strtime (sleeptime, !SAY_MORE), ".\r\n\r\n\007"
             );
       }
 
@@ -253,13 +252,13 @@ void warn(i, type, do_msg)
             (
                termf,
                "%s%19.19s%s%s%s %d%s %s%s",
-               "\007\n\n\n\n",
+               "\007\r\n\r\n\r\n\r\n",
                ctime (&tempus),
-               "\nThis user id is logged on too many times.  Please end\n",
-               "some logins to reduce your total number of logins to no\n",
+               "\r\nThis user id is logged on too many times.  Please end\r\n",
+               "some logins to reduce your total number of logins to no\r\n",
                "more than ", him->next, ".  Please do so in the next",
                strtime (sleeptime, !SAY_MORE),
-               "\nor you will be logged out by the system.\n\n\007"
+               "\r\nor you will be logged out by the system.\r\n\r\n\007"
             );
       }
 
@@ -288,13 +287,13 @@ void warn(i, type, do_msg)
             (
                termf,
                "%s%19.19s%s %d %s %s %s",
-               "\007\n\n\n\n",
+               "\007\r\n\r\n\r\n\r\n",
                ctime (&tempus),
-               "\nThis terminal has been idle",
+               "\r\nThis terminal has been idle",
                him->idle / 60,
-               "minutes. If it remains idle\nfor",
+               "minutes. If it remains idle\r\nfor",
                strtime (warntime, SAY_MORE),
-               "it will be logged out by the system.\n\n\007"
+               "it will be logged out by the system.\r\n\r\n\007"
             );
       }
 
@@ -313,13 +312,13 @@ void warn(i, type, do_msg)
             (
                termf,
                "%s%19.19s%s %d %s %s %s",
-               "\007\n\n\n\n",
+               "\007\r\n\r\n\r\n\r\n",
                ctime (&tempus),
-               "\nThis terminal has been in use",
+               "\r\nThis terminal has been in use",
                him->session / 60,
-               "minutes.\nIn",
+               "minutes.\r\nIn",
                strtime (warntime, !SAY_MORE),
-               "it will be logged out by the system.\n\n\007"
+               "it will be logged out by the system.\r\n\r\n\007"
             );
       }
 
@@ -332,10 +331,10 @@ void warn(i, type, do_msg)
             (
                termf,
                "%s%19.19s%s %s",
-               "\007\n\n\n\n",
+               "\007\r\n\r\n\r\n\r\n",
                ctime (&tempus),
-               "\nYour terminal session is about to be",
-               "terminated by the system.\n\n\007"
+               "\r\nYour terminal session is about to be",
+               "terminated by the system.\r\n\r\n\007"
             );
       }
 
