@@ -1,0 +1,256 @@
+                      How to Install doinkd
+                      =====================
+
+COMPILATION
+===========
+
+Edit the Makefile to select the type of system that you have by
+removing the '#' marks in front of the line for your type of
+system. (FIXME: must detect system and auto configure)
+
+If you use XDM, then you will probably want to add -DXDM_HACK
+to the DEFS line for your system.  If "last" reports that a
+user on console is connected to some tty other than ":0", then
+you will also need to change the XDM_DEV define in doinkd.h.
+
+(If you have to change anything else in the Makefile  for the
+information to be correct for your system, please let me know.)
+
+Idled v1.15 added a new feature to set limits based on where
+a user is logged in from.  As I don't know the utmp structure
+on all systems, I have not defined UTMPHOST for some systems
+that probably have ut_host in the utmp structure.  If your
+utmp.h indicates that your system does have ut_host in the
+utmp structure, please let me know so I can update the Makefile.
+
+You may wish to adjust the install directories for your system.
+You may also wish to adjust the owner and group users for the
+file for the 'make install' process.  You can also adjust the
+file priviledges (modes) as desired.
+
+Special Notes for Certain Systems:
+   Linux:   The two steps necessary for Linux after editing the
+            Makefile to choose the proper system is to:
+                make clean
+                make
+            That will delete parse.c and have yacc regenerate it,
+            which should avoid a 'struct qelem' problem and the
+            yyrestart() function problem.
+            
+            If you have problems related to 'yyrestart' after the
+            'make clean', then it may be due to the fact that it
+            is assumed that Linux has the yyrestart() function.
+            If your's doesn't (or you get an "undefined function"
+            error), remove the -DHAVE_YYRESTART from the Makefile.
+
+   Solaris x86:  The MOUSE_NAME defined in doinkd.h will be
+                 incorrect for your system.  It should be
+                 set to one of the following:
+                     Mouse Mode     MOUSE_NAME
+                     ==========     ==========
+                     PS/2 style     "/dev/kdmouse"
+                     Logitech Bus   "/dev/logi"
+                     Microsft Bus   "/dev/msm"
+                     Serial         "/dev/ttya"  (or ttyb, for port 2)
+                 The keyboard will use the same port, so the
+                 KEYBOARD_NAME definition can be left to anything
+                 that is not a real device (so it will be ignored).
+
+   BSDI:
+   BSD/OS2: parse.c will need to be deleted and recreated before
+            being compiled.  You can either delete it by hand, or
+            do a 'make clean' followed by the normal 'make'.
+
+   Digital Unix:  You may have problems with doinkd warning users
+                  but never logging them off.  This will probably
+                  be true for DU 3.2, especially.  If this is the
+                  case, try recompiling with -DDISABLE_WARNS added
+                  to the DEFS line of the Makefile.  This will
+                  prevent doinkd from warning, but should allow
+                  logouts to work.  This would be necessary to
+                  work around a bug/oddity in this O.S.
+
+
+The default in the CFLAGS line is to compile without debugging
+information and without optimization.  You can add the '-g' to
+the CFLAGS line if you want debugging, or '-O' or whatever variant
+is appropriate for your system if you desire a slightly smaller
+executable.  No useful core dumps will be made with optimization
+(of course, those shouldn't ever happen, should they).  :-)
+
+NOTE:  I have included my versions of the following files:
+       parse.c y.tab.h scan.c
+
+       These are files created from yacc and lex.  If you have
+       problems trying to compile them, try doing deleting them
+       or doing a 'make clean' before compilation, so that these
+       files will be recreated on your system.  I have included
+       them because I do not anticipate problems, and do not know
+       if some poor system out there might not have these useful
+       tools.
+
+Once everything is all set up in the Makefile, just type 'make'
+to start the compilation going.
+
+
+INSTALLATION
+============
+
+Typing 'make install' as root will hopefully put the binary,
+configuration file, and the two manual pages into the proper
+locations with the owner and permissions specified in the
+Makefile.
+
+If it doesn't work, you may wish to try one of the other install
+procedures with 'make install1' or 'make install#'.  The number
+of '#'s will change as I learn of more which are needed.
+
+If none of these work, please send me the proper install command
+calls you need for your system.  You are on your own to find
+those, but 'man install' should be helpful.
+
+
+CONFIGURATION
+=============
+
+Before trying to run doinkd, you should set up its configuration
+file which should now be installed.  The default doinkd.cf file
+has the general layout with some default information and examples
+of the possibilities.  Refer to the doinkd.cf(5) manual page for
+more information on the configuration file.
+
+***NOTE***
+The form of the 'conswins' command changed in doinkd v1.10.
+If you are using a config file from an older version of doinkd,
+you *must* change this command appropriately for it to work
+with the new version of doinkd.  See CHANGES file or the
+doinkd.cf man page for information on how to make the change.
+
+
+EXECUTION (Running the program, not killing the users)
+======================================================
+
+doinkd should now run by simply calling 'doinkd' as root (when in
+the proper directory or specifying the path).  If it either fails
+to start or to show up in a process listing after starting it,
+check the log file (default is /var/log/doinkd.log) to see if
+doinkd gave an explanation of its exiting.  The most common reason
+for it to exit when first run is an error in the configuration
+file, and this type of error will appear in the log file.
+
+
+STARTING DOINKD AT BOOT TIME
+===========================
+
+I know of two different install methods, which are listed below
+under a short description for each:
+
+SunOS 4.x (all BSD?) -- /etc/rc.local --:
+****************************************
+    This type uses a few lines in the /etc/rc.local file to set
+    up some more local configuration things.  In this type of
+    environment, the following few lines near the end of that
+    file might be sufficient to have doinkd start everytime the
+    machine is booted:
+
+   #
+   #  Start doinkd
+   #
+   if [ -f /usr/local/sbin/doinkd ]; then
+      /usr/local/sbin/doinkd ; echo "Idle daemon started"
+   fi
+
+    This assumes the doinkd exectuable is in /usr/local/sbin;
+    adjust as necessary.
+
+Solaris 2.x (all SVR4?) -- /etc/rc#.d/* --:
+    This type uses a script in one of the rc#.d directories for
+    each program (usually) to be started or killed at the various
+    times.  Assuming you are using the machine in multi-user
+    mode, an doinkd start script should go in rc2.d (multi-user
+    mode with network resources not exported) or rc3.d (same with
+    network resources exported).  rc3.d is probably the prefered
+    choice.  A script such as this, with a name such as S95doinkd
+    (the 'S' specifies that it be called with the 'start'
+    parameter, as opposed to 'K' for kill, which calls it with
+    'stop'; note that the higher the number, in this case 95, the
+    later the script is run; this may not matter much if there
+    are few or no other scripts in that directory):
+
+   #
+   #  S95doinkd -- start or kill doinkd
+   #
+
+   if [ ! -d /usr/local/sbin ]; then
+      exit              # Can't find the directory.
+                        # Perhaps /usr isn't mounted?
+   fi
+
+   case "$1" in
+   'start')
+        # Start doinkd
+        if [ -f /usr/local/sbin/doinkd ]; then
+           /usr/local/sbin/doinkd && echo "Idle daemon started"
+        else
+           echo "Could not find doinkd"
+        fi
+        ;;
+
+   'stop')
+        # Find and kill doinkd
+        pid=`/usr/bin/ps -e | /usr/bin/grep doinkd | /usr/bin/sed -e 's/^  *//' -e 's/ .*//'`
+
+        if [ "$pid" != "" ]; then
+           /usr/bin/kill $pid
+           echo "doinkd killed"
+        fi
+        ;;
+
+   *)
+        echo "usage: S95doinkd {start|stop}"
+        ;;
+   esac
+
+    Adjust the /usr/local/bin directory if it is not correct.
+    Also, the search method to find the pid, along with the paths
+    to ps, grep, sed, and kill, may vary for your particular
+    system.
+
+
+That's all:
+***********
+
+With the appropriate one of these in place, or some other method
+for your system, doinkd should now run whenever the machine boots
+and hopefully kill off those bad users!
+
+
+PROBLEMS?
+=========
+
+If you have problems, feel free to mail me for help, and I will
+do my best.
+
+Here is a helper if you get a
+        "too many users: Recompile with higher 'MAXUSERS' setting."
+error message:
+        * doinkd uses the utmp file to see what users are logged
+          in.  The MAXUSERS setting is actually the number of
+          entries in the utmp file that doinkd can handle.  This
+          is usually close to the maximum number of users that
+          log onto a system, but may vary depending on the O.S.
+          and usage.  To aid in increasing the MAXUSERS setting
+          in this situation, Idled v1.12+ and doinkd v0.01+ includes
+		a sub-program ('make utmplines') to tell you how many lines
+          are currently in your utmp file.  The MAXUSERS setting
+          in doinkd.h should be greater than that number of lines.
+
+
+If you *had* problems, and have patches to anything in this or
+other doinkd documentation or code, please mail me these patches
+and a description of what system (as in O.S.) you are installing
+doinkd on.
+
+Any other comments or suggestions appreciated.
+
+--Lott Caskey (lottc@SpinnakerResorts.com)

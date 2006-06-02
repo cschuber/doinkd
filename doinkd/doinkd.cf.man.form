@@ -1,0 +1,573 @@
+.TH DOINKD.CF 5 "May 30, 2006"
+.SH NAME
+CONFIGPATH \- doinkd configuration file format
+
+.\"*****************************************************************
+.SH DESCRIPTION
+.IR doinkd,
+the login monitor daemon, decides how it should act based on the file
+doinkd.cf.
+This file consists of a series of specifications which each
+describe an aspect of doinkd's actions.  There are ten types of commands: 
+.IP 1.
+.B Exemption  
+commands
+specify people that are exempt from doinkd's actions.
+.IP 2.
+.B Session
+commands specify people who are restricted in the length of time
+they may remain logged in.
+.IP 3.
+.B Timeout
+defines how long a terminal must be idle before it is logged out.
+.IP 4.
+.B Refuse
+commands specify people to immediately log off when they are found.
+.IP 5.
+.B Sleep
+sets the number of minutes doinkd should sleep between checks. 
+.IP 6.
+.B Wait
+sets the number of seconds doinkd should give to an idle tty after it
+warns before it logs it out.
+.IP 7.
+.B Conswins
+specifies how to handle tty's owned by the user logged in on console.
+It can define special handling for idle logouts, session limits, and
+multiple logins.
+.IP 8.
+.B Idlemethod
+determines if users are considered idle by input only, or by output
+as well.
+.IP 9.
+.B Threshold
+sets the threshold number of users who must be logged in before multiple
+login or session limit controls take effect.
+.IP 10.
+.B Multiples
+specifies the behavior of multiple login logouts to control how many
+multiple logins each user is allowed to keep.
+.IP 11.
+.B Maxuser
+sets the number of sessions per userid, group, tty or file allowedi.
+.PP
+Lines beginning with a hash (#) in column one are comments.
+Other lines may be indented for readability.
+
+.\"*****************************************************************
+.SH Exemptions
+.PP
+Exemptions have the form:
+.IP
+.B exempt
+.I who
+.I from
+.PP
+where
+.I who
+must be one of:
+.IP
+.B login
+.I username
+.IP
+.B host
+.I hostname
+.IP
+.B group
+.I groupname
+.IP
+.B tty
+.I ttyname
+.IP
+.B file
+.I filename
+.PP
+where
+.I Username
+must be a valid login name as in /etc/passwd.
+.I Hostname
+must be identical to the name as displayed by 'finger' when someone
+is logged in from that host and truncated to the length of the
+ut_host field in utmp.h, if necessary.  "localhost" or the
+truncated version (if necessary) allows for specific commands just
+for users logged in locally.
+.I Groupname
+must be a valid group name as in /etc/group.
+.I Ttyname
+is a terminal name as in the
+.B utmp
+file (e.g., \*(lqtty\fIXX\fP\*(rq).
+.I Filename
+is either a filename/path relative to the working directory
+doinkd was started from, or is a complete path/filename of a
+file listing usernames.  See the
+.B Specifying Users Via a File
+section below for more information.
+.PP
+and
+.I from 
+must be one of:
+.IP
+.B multiple
+.IP
+.B idle
+.IP
+.B session
+.IP
+.B maxuser
+.IP
+.B all
+.PP
+which specify that
+.I who
+is exempt from being logged off for maintaining multiple logins,
+remaining idle longer than the idle timeout period, exceeding a login
+session limit, or all three, respectively.
+
+.\"*****************************************************************
+.SH Session
+.PP
+Session commands take the form:
+.IP
+.B session
+.B refuse
+.I minutes
+.IP
+.B session
+.B default
+.I minutes
+.IP
+.B session
+.I who
+.I minutes
+.PP
+where
+.I who
+is the same as above and
+.I minutes
+is a decimal number.
+The command indicates the length of time a user may be logged in for
+before they must terminate their
+.IR session . 
+Warnings and logouts will be issued if the
+.I session
+limit is exceeded.
+The
+.B default
+command specifies the session limit time that should apply to
+users that do not have a session limit assigned to them by
+some other
+.B session
+command in the
+.I doinkd.cf
+file applying to
+.BR group ,
+.BR login ,
+or
+.BR tty .
+.PP
+The
+.B refuse
+command specifies number of minutes to refuse logins to a user who has
+been warned or logged out from a session limit.  Therfore, if the
+refuse time is set to 5 minutes, users who are warned or actually
+logged out due to a session limit must wait 5 minutes to log back
+in, otherwise their tty will be killed as soon as doinkd awakens.
+.PP
+Session limits are especially useful for modem lines to prevent
+users from tying up the line for too long.
+
+.\"*****************************************************************
+.SH Timeout 
+.PP
+Timeouts are of the form:
+.IP
+.B timeout
+.I who
+.I minutes
+.PP
+where
+.I who
+is the same as above, but can also be
+.I default
+and 
+.I minutes 
+is a decimal number.
+This command indicates that
+.I who
+will be logged off after remaining idle for
+.I minutes
+minutes.  The default idle timeout affects
+anyone not otherwise exempted from timeouts or mentioned
+in an explicit timeout rule.
+.I doinkd
+determines idleness to be the length of time from the
+last keypress by the user (ie. data throughput alone
+is still considered idle).  For X-Windows, both mouse
+movements and keypresses determine idle time.
+
+.\"*****************************************************************
+.SH Refuse
+.PP
+Refuse commands take the form:
+.IP
+.B refuse
+.I who
+.PP
+where
+.I who
+is the same as above. 
+.I minutes
+As soon as doinkd spots a user matching a refuse statement, it will
+tell the user that the session will be terminated, and will actually
+do so approximately 5 seconds later.
+
+.\"*****************************************************************
+.SH Sleep
+.PP
+Sleep commands are of the form:
+.IP
+.B sleep
+.I seconds
+.PP
+and specify that doinkd will sleep 
+.I seconds
+seconds between its checks.
+If there is more than one sleep specification, only the last one is used.
+
+.\"*****************************************************************
+.SH Warn
+.PP
+Warn commands are of the form:
+.IP
+.B warn
+.I seconds
+.PP
+and specify that doinkd will sleep 
+.I seconds
+seconds between warnings and logouts.
+If there is more than one warn specification, only the last one is used.
+
+.\"*****************************************************************
+.SH Conswins -- Console Windows Handling
+.PP
+Conswins commands are of the form:
+.IP
+.B conswins idle
+.I option
+.IP
+.B conswins session
+.I option
+.IP
+.B conswins multiple
+.I option
+
+.PP
+where
+.I option
+is one of:
+.IP
+.I number
+.IP
+.B normal
+.IP
+.B off
+.PP
+The
+.I number
+specifies the number of minutes allowed for tty's owned by the user
+on console for
+.B idle
+timeouts or
+.B session
+limits.
+For
+.BR multiple,
+it specifies the
+.I number
+of multiple logins that should be allowed for the user on console.
+These numbers
+.I will overide
+what the 
+.BR timeout ,
+.BR session ,
+and
+.BR multiples
+settings would otherwise specify for the user.
+.I normal
+specifies to use the default timeout, session limits, and number of
+multiple logins for the user on console.
+.I off
+instructs
+.B doinkd
+to not log off any tty's owned by the user on console, despite how
+long they have been idle, how long the tty's have been in session,
+or how many tty's are in use (for idle, session, and multiple,
+respectively).
+
+.\"*****************************************************************
+.SH Idlemethod 
+.PP
+The idlemethod command is of the form:
+.IP
+.B idlemethod userinput
+.PP
+or
+.IP
+.B idlemethod inputoutput
+.PP
+When set to
+.IR userinput,
+doinkd requires that the user interact with (ie. type into) the tty
+to be considered not idle.  If a user, then, has not typed anything
+recently, that user will be considered idle despite whether or
+not the terminal is busy and perhaps displaying output of a running
+program.
+.PP
+When set to
+.IR inputoutput,
+doinkd will only consider a user idle if there has been no input
+.B or
+output to the tty recently.  If any program is writing output to
+the tty, then, that tty is not idle.  Note that with this setting,
+a tty
+.B is
+still idle if a program is running without user interaction and is
+.B not
+displaying output to the tty.
+.PP
+If this option is unspecified, it defaults to
+.IR userinput.
+
+.\"*****************************************************************
+.SH Thresholds
+.PP
+Threshold commands are of the form:
+.IP
+.B threshold 
+.I type
+.I number 
+.PP
+where
+.I type
+must be one of:
+.IP
+.I multiple
+.IP
+.I session
+.PP
+For the
+.I threshold multiple
+command, the 
+.I number
+specifies the minimum number of tty's that must be in use before
+doinkd begins to limit the users on how many tty's they may have.
+For example, if the threshold is set to 10, and 3 users are
+logged on 5 times each (each have 5 tty's), then since 3*5=15 and
+15 >= 10, doinkd will limit how many tty's they may have.  If the
+.B multiples
+command (see below) specifies that users get 3 sessions during
+this period, then each of the users would have to get rid of two
+of their tty's, or doinkd would kill 2 for them.
+.PP
+For the
+.I threshold session
+command, the
+.I number
+specifies the minimum number of tty's that must be in use before
+doinkd begins to limit the length of time users may remain logged
+on.  If there are at least that many tty's in use, then doinkd will
+perform warnings and kill tty's that have been logged in as long
+as or beyond their maximum allowed time (specified in a
+.B session
+command).
+.PP
+If a
+.I threshold
+is not set, then no checking will be done.
+.PP
+.B Multiple
+login logouts restrict each user to a number of logins based
+on the
+.I multiples
+setting.  See
+.B Multiples
+for more information.
+
+.\"*****************************************************************
+.SH Multiples
+.PP
+The multiples command is of the form:
+.IP
+.B maxuser 
+.I type
+.I name 
+.I number 
+.PP
+where
+.I type
+should be the type of
+.PP
+If the
+.I number
+is -1, then the number of logins each user is allowed to have
+is based on how many different users are currently logged in.
+It is figured as the floor of (multiple threshold)/(num users).
+So, if the threshold is 10 and there are 2 different users on,
+each user would be allowed to keep 5 logins.
+If the threshold is 10 and there are 3 different users on,
+then each user would be allowed to keep 3 logins.
+.PP
+If the
+.I number
+is greater than 0, then it specifies the number
+of logins each user will be allowed to keep, despite the total
+number of tty's in use.
+.PP
+doinkd guarantees that each user will be allowed to keep at least
+one tty.
+.PP
+The method in which doinkd chooses which tty's to keep is based
+on login time.  The tty's which were started first will be kept,
+with the later ones being warned and killed.
+
+.\"*****************************************************************
+.SH Maxuser
+.PP
+The maxuser command is of the form:
+.IP
+.B multiples 
+.I who 
+.I number 
+.PP
+where
+.I who
+is the same as above.
+.PP
+.I number
+is the number of sessions allowed.
+.PP
+The method in which doinkd chooses which tty's to keep is based
+on login time.  The tty's which were started first will be kept,
+with the later ones being warned and killed.
+
+.\"*****************************************************************
+.SH Specifying Users Via a File
+.PP
+As is indicated above, each of the
+.B timeout, session, refuse,
+and
+.B exempt
+commands can specify users via a
+.B file
+statement.  Therefore, such lines would look like these:
+.PP
+.PD
+      timeout file
+.B <filename>
+<minutes>
+      session file
+.B <filename>
+<minutes>
+      refuse file
+.B <filename>
+      exempt file
+.B <filename>
+<exempt_type>
+.PP
+The
+.B <filename>
+should be either a filename/path relative to the working directory
+from which doinkd was started, or a complete path to a user file
+(such as /usr/local/lib/users).
+.PP
+The format of the file is simply one login name per line.  Initial
+spaces on a line is ignored.  Any text beyond the first word on the
+line is also ignored (so comments, if desired, can be placed at the
+end of the lines).  Blank lines are ignored.
+.PP
+Filenames can contain letters A-Z and a-z, numbers 0-9, '_', '.',
+and '/'.  Therefore,
+
+       /usr/local/lib/doinkd/Session_Users1.list
+.PP
+is a valid filename.  Any other character than those mentioned
+above are not allowed in the filenames.
+
+
+.\"*****************************************************************
+.SH EXAMPLE
+.PP
+A sample doinkd configuration file follows (look in the doinkd
+distribution package for
+.BR doinkd.cf ,
+an example that shows all commands):
+.br
+.nf
+
+   #
+   # sleep 2 minutes between checks (specified in seconds)
+   #
+       sleep 120
+   #
+   # Give 5 minutes between warning and logout (in seconds)
+   #
+       warn 300
+   #
+   # Set conswins to off, so that idle, multiple, and session
+   # logouts will be disabled for tty's owned by the user
+   # logged in on console.
+   #
+       conswins idle off
+       conswins multiple off
+       conswins session off
+   #
+   # 30 users must be logged on before
+   # multiple login checks will begin
+   #
+       threshold multiple 30
+   #
+   # Do proportional multiple login allows, based on the multiple
+   # threshold and number of different users on.
+   #
+       multiples -1
+   #
+   # We want session limits to apply all the time
+   #
+       threshold session 1
+   #
+   # idlemethod set to "userinput" (default) requires that user
+   # interact with the tty to be determined not idle.  Set it to
+   # "inputoutput" to allow tty output to also consider the tty
+   # not idle.
+   #
+   #        idlemethod inputoutput
+   #
+   # Set the timeout for console to be 15 (plus warntime)
+   # before it will log off anyone on console.
+   # Set the default idle timeout to 60 minutes.  For the
+   # group staff, set the idle timeout to 2 hours.
+   # 30 minute timeout for users logged in from dopey.
+   #
+       timeout tty console 15
+       timeout default 60
+       timeout group staff 120
+       timeout host dopey 30
+   #
+   # Students must not remain logged in for longer than 45 minutes
+   #
+       session group student 45
+   #
+   # Necessary exemptions to make sure the console doesn't
+   # get logged off for session limits or multiple logins and
+   # staff members don't get logged off at all.
+   #
+       exempt tty console session
+       exempt tty console multiple
+       exempt group staff all
+
+.fi
+
+.\"*****************************************************************
+.SH SEE ALSO
+doinkd(8), utmp(5)
