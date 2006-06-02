@@ -1,0 +1,123 @@
+#--------------------------------------------------------------------------
+# HOW LONG TO SLEEP BETWEEN CHECKS (in seconds):
+#
+	sleep 120
+
+
+#--------------------------------------------------------------------------
+# NUMBER OF SECONDS TO ALLOW FOR IDLE WARNING BEFORE LOGOUT:
+#
+	warn 120
+
+
+#--------------------------------------------------------------------------
+# NUMBER OF MINUTES TO ALLOW FOR IDLE/MULTIPLE/SESSION TIME FOR
+# TERMINALS OWNED BY THE PERSON CURRENTLY LOGGED IN ON CONSOLE:
+#
+# If these are not set at all, or are set to 'normal', then normal
+# idle logouts, multiple login logouts, and session limit logouts
+# will be in effect.  If set to OFF, then idle logouts, multiple
+# login logouts, and session limit logouts will be disabled for
+# these terminals.  If they are set, they override the 'timeout',
+# 'session', and 'multiples' commands for these terminals.
+#
+        conswins idle off
+        conswins multiple off
+        conswins session off
+
+
+#--------------------------------------------------------------------------
+# THRESHOLDS FOR MULTIPLE LOGINS AND SESSIONS:
+#
+# 10 users must be logged on before multiple login checks
+	threshold multiple 10
+# 10 sessions amongst all users must be active before doinkd
+# will be active for session limits
+	threshold session 10
+
+
+#--------------------------------------------------------------------------
+# SPECIFY MULTIPLE LOGIN REMOVAL BEHAVIOR
+#
+# Set to -1 for proportional logouts, being the floor of
+# the threshold for multiple divided by the number of different
+# users logged on.
+# Set to some other number to specify that each user should
+# be able to keep that many tty's.
+#       multiples 3
+
+
+#--------------------------------------------------------------------------
+# IDLE METHOD DETERMINATION:
+#
+# Set to "userinput" requires that user interact with the tty
+# to be determined not idle.  "inputoutput" allows tty output
+# to also consider the tty not idle.  If not set, idlemethod
+# defaults to userinput.
+#
+#        idlemethod inputoutput
+
+
+#--------------------------------------------------------------------------
+# TIMEOUT RULES:
+#
+# Set the console idle timeout to 15 minutes before warning
+# the user and killing the main login shell 'warn' time
+# seconds later if no action is performed by the user.
+# (Killing the login shell has everything else cascade
+# afterwards).
+#     timeout group [groupname]  [min]
+#     timeout login [username]   [min]
+#     timeout file  [pathToFile] [min]
+#     timeout host  [hostname]   [min]
+
+      timeout tty console 15
+      timeout default 30
+
+
+#--------------------------------------------------------------------------
+# REFUSALS:
+#
+# Immediately kill any logins by user 'stupid'
+#      refuse login stupid
+# The users listed in the file "idiots" will be refused.
+#      refuse file idiots
+
+
+#--------------------------------------------------------------------------
+# SESSION LIMITS:
+#
+# The number of minutes to refuse users who have been warned/logged
+# out due to a session limit.  30 minutes, if uncommented (default 0)
+#   session refuse 30
+# No default session limit (will be set to 2 hours if uncommented)
+#   session default 120
+# Students must not remain logged in for longer than 120 minutes
+#   session group student 120
+
+
+#--------------------------------------------------------------------------
+# EXEMPTIONS:
+# 
+# type can by 'session', 'maxuser', 'refuse', 'multiples', 'timeout'
+#
+#	exempt group [groupname] [type]
+#	exempt login [username] [type]
+#	exempt tty [username] [type]
+
+     exempt tty console session
+	exempt login root all
+
+
+#--------------------------------------------------------------------------
+# MAXUSER:  by Lott Caskey  :)
+#
+# The maxuser rule allows you to limit the number of sessions by user and/or
+# group.  Syntax:
+#    maxuser group [groupname]  [sessions]
+#    maxuser login [username]   [sessions]
+#    maxuser file  [pathToFile] [sessions]
+	maxuser group test 2
+
+
+

@@ -1,0 +1,220 @@
+Things on the TODO list:
+
+1.  Rework all of the debug output.  Set it so that if DEBUG=-1,
+    then debug information/code isn't compiled in at all, if
+    DEBUG >= 0, then debug information/code is in there and
+    that level of debugging (for DEBUG >= 1) will represent
+    the debug level.  XXXXXX other stuff.
+
+2.  The current xlock check is a little cheesy, since a user can
+    avoid the checks by running it under a different name than
+    chosen at compile time.  I would like to rewrite the checks
+    to see if a program has grabbed full control of the keyboard,
+    and if one does, it is probably an xlock program.  I'm not
+    sure how I would work it all right now, but idled might have
+    to simply notice the first time it found such a program and
+    see if one is still running 'idle time' minutes later.  This
+    is imperfect, however, as it is possible for the user to exit
+    the xlock program for a very short period of time (less than
+    'sleep' seconds, as specified in the conf file) and start a
+    new one.  But, I would like to do something.
+    In testing of this, it isn't going to work, since some other
+    programs also grab the keyboard occasionally, and there would
+    be no way to know if an xlock program is what is grabbing it
+    or not.  Ideas?
+
+3.  Make an exempt-command feature???  Suggestion from Chris Jackman:
+
+        Have you thought about allowing a command name exemption?
+        Say you have long running program that is valid but doesn't
+        have any tty input.  (Let's say the controlling process for
+        a xterminal login session.)  What happens is that even though
+        your subshells are not idle the controlling tty/process looks
+        idle and is nuked killing everything you have running.   If you
+        could say ignore tty's with processes called "xinitremote" and
+        have this as idled.cf parameter that would solve the problem.
+
+        This could also be useful for any long running processes that 
+        might be valid to have on a system for longer than any given
+        timeout.
+
+    The format of the command will probably be something like this:
+        exempt command session <command name>
+                Exempts the user's tty from session limits if the
+                user is running the specified command.
+        exempt command idle <command name>
+                Exempts the user's tty from idle logouts if the
+                user is running the specified command.
+        
+4.  A similar possibility to the exempt-command is to not consider a
+    tty as idle if the children of the controlling shell are
+    still active (ie. backgrounded processes are working, but
+    the shell itself is idle).  This sounds like using system-
+    dependent process walking, though, which is messy.  Also,
+    how is activeness of a process determined?  Any ideas?
+
+5.  Perhaps add an option to run some external program when a user
+    gets warned.  Users here manage to not notice the idled warnings
+    and get logged out.  Some have taken to running a program to
+    play a sound file if they are idle for just under the logout
+    time here.  Perhaps I will accommodate them by letting idled
+    warn them in a louder fashion (or maybe even letting the
+    specific user choose what idled does [I don't think so, here]).
+
+6.  Idled seems to not work on some systems because the killing
+    of the user does not result in the utmp entry for the user
+    being removed, though the user has actually been logged out.
+    I'd like to see if I can find a way to fix that.
+
+7.  Would like to add this:
+      Suggestion from John Coy:
+      I do have one request and was wondering if you might consider adding 
+      this feature: adding a check to logout a user in a particular group
+      during a specified time frame.  For example, if a user was in the group
+      'daytime', he would be logged off if the hour was between 3pm - 3am.  This 
+      would be a very useful feature since it would allow the creation of 
+      'non-prime-time' accounts.
+
+    Probable format:
+        primetime 15:11 3:14            /* Note: 24 hour mode! */
+
+        session primetime group daytime 10
+                          ^^^^^^^^^^^^^^^^ Any valid session stuff here
+        timeout primetime group daytime 10
+                          ^^^^^^^^^^^^^^^^ Any valid timeout stuff here
+
+    Perhaps have 'primetime' first for all:
+        primetime hours 15:11 3:14            /* Note: 24 hour mode! */
+        primetime session group daytime 10
+        primetime timeout group daytime 10
+
+    This would operate on a session limit basis, where the user, during the
+    prime-time hours, would be limited to some number of minutes.  During
+    the non-prime-time hours, only the usual session limit / idle timeouts
+    would be in place.  Multiple logins should also be based on prime-time
+    hours.
+
+    *Perhaps in the mean time, implement a simple 'timerange' to specify
+    when idled is function, or non-functional.  Clearly not as much
+    power, but easy to implement.  Using this, two idled's could be running
+    with different configuration files covering different time chunks.
+
+8.  I'd like to get rid of the system dependent file flushing in warn.c.
+    I've looked at tcflush() to see about using it to slaughter all
+    unread/unwritten data hoping that it could be used as a generic
+    system-independent method.  It didn't work (unless I want to rewrite
+    all the output in warn.c to use open() and write() calls).  So, I'm
+    still looking.  Any help would be appreciated.
+
+9.  Perhaps implement some sort of idle process slaughtering, as well
+    as session limit slaughtering.  This can have an effect when the
+    normal idled wouldn't in the situation of users 'rsh'ing a process
+    to another machine or backgrounding a process.
+
+10.  Add an option to offer multiple warnings, say at 10 minutes before
+     death and at 2 minutes.  This would be configurable, of course.
+
+11.  Add an option to have warnings also logged in the logfile.
+
+12.  Finish the pidkill() procedure in zap.c.  Make notes in the
+     appropriate docs about being able to choose the order of the
+     kill signals, such as HUP, EMT, KILL,  or  HUP, TERM, KILL,
+     or whatever is best for that system.
+
+13.  Implement overall session limits, so that users may log on
+     10 different times for only a few minutes each, but the
+     total time of those logins will be limitted.
+     Suggestion by Douglas Brewer <dbrewer@phs.k12.ar.us>.
+
+14.  Perhaps implement idlemethod based on a per-user basis,
+     such as allowing login, user, tty, group commands for it,
+     as well as a default?
+
+15.  Perhaps add an option so that 'session refuses' will either
+     refuse a user from all hosts if he was killed by a
+     'session host' command, or to refuse the user ONLY from that
+     host.  Perhaps something like this:
+                session hostrefuse all
+            or
+                session hostrefuse host
+
+16.  Allow setting of 'multiples' by login/group/tty specification,
+     instead of the current general setting.
+
+17.  Perhaps allow the use of wildcards in login/group/tty
+     specifications, such as
+        exempt group P* timeout
+
+18.  Perhaps change the configuration reading so that names
+     (such as hostnames and usernames) can have any character
+     in them.  At least ensure that '.' and '-' can always be
+     used.
+
+******************************************************************
+Things that will most likely be an a 2.00 release (perhaps sooner,
+based on how much time I find):
+******************************************************************
+
+1.  Dynamic policy adjustment:
+      This would require a sub program to communicate with the
+      idled process to change the loaded policies without change
+      of the configuration file.  Such a change could be done
+      like this:
+               idled_adjust -u joe -i 30
+         to change the allowed 'i'dle time for 'u'ser joe to 30 minutes
+               idled_adjust -g students -s 20
+         to change the 's'ession limit for 'g'roup students to 20 minutes
+               idled_adjust -f staff -e all
+         to 'e'xempt the users in the staff 'f'ile from all checks
+               idled_adjust -cf config
+         to change the configuration file to 'config'
+
+      Except for the config file change, these could be done on the
+      current logins of joe, students, and staff only, perhaps with
+      the addition of a '-l' option.
+
+      The purpose of this could be something like the following
+      examples:
+
+         a.  Joe is going to be popping in and out of the lab while
+             performing some critical time-consuming commands.  He
+             needs to have more than 10 minutes of idle time.  To
+             help him out, the system administrator kindly increases
+             Joe's allowed idle time for the current login to 30
+             minutes.  With the dynamic policy adjustment, the config
+             file will still be correct for future situations.
+
+         b.  A system may have users dialing in on their own phone
+             bill and on 1-800 lines.  The users on the 800 lines
+             should be session limited.  When the user logs in on
+             an 800 line, an idled_adjust command would be issued
+             to tell idled to attach a session limit to that user
+             for the current login.
+
+      It is more of the "for the current logins only" type of changes
+      that I see a real use for this.
+
+      I had more to say here, but I forgot.  Maybe it will come to me.
+
+2.  A "plug-in" system:
+      The two places in idled where some sort of plug-in might be
+      useful (as I see them) are:
+         a.  The idle process determination
+         b.  The killing Process -- perhaps warn as well
+
+      Reasoning:
+         a.  We have a portmaster modem server that has special
+             commands to monitor session times and kill sessions.
+             Idled's current idle/session methods have no way
+             to check such things, and a "plug-in" here would
+             do the trick.
+
+         b.  The portmaster would also require some killing
+             mechanism, and a "plug-in" would do here, as well.
+             Also, this would allow for a different style of
+             kill, as well as possibly allow functionality for
+             idled on a system that it otherwise doesn't work
+             on.
+
+         c.  Something else I just forgot.  I think I need to go
+             eat dinner.  :-)

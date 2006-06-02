@@ -1,0 +1,553 @@
+Changes to doinkd.
+
+V 0.01
+======
+1. Change of name to doinkd.
+
+2. Add support for Unixware 7.x.
+   Patch supplied by Paul Gampe (paulg@apnic.net).
+   Patch also adds startup script (init.d/idled).
+
+3. Modified ps_hack_kill to query full tty name.
+
+4. Added maxuser configuration to allow maximum number of sessions
+   to be defined per user / group / tty / file.
+
+---------------------------------------------------------------------
+
+Changes to Idled.
+
+V 1.16
+======
+1. Changed some type-castings to be what they should be, which will
+   make some compilers happier.  Also decided to see how many
+   obsolete systems are out there by removing the manual definitions
+   of some functions, such as malloc() and strcpy(), in favor of
+   <stdlib.h> (should be fine) and <string.h> (might cause problems
+   on older systems with just <strings.h>).
+
+2. Added a define of seteuid() to setresuid() for HP-UX, which does
+   not have seteuid.  Thanks to Richard Allen <ra@rhi.hi.is> for the
+   patch.
+
+3. Added some code that will hopefully allow idled to work with XDM,
+   at least on some systems.  It relies on the user being connected
+   to the ":0" tty.  This can be checked by doing "last" (probably).
+   If that is the case when a user is logged in on console, then
+   you can define XDM_HACK to use it.  If something else is used
+   (say, ":0.0"), then you can change the XDM_DEV define in idled.h
+   appropriately.
+
+4. Added the ability to have idled mail a message to users that it
+   kills.  Definining MAILMESSAGE in the Makefile and ensuring that
+   MAILPATH and MAILMESSAGEFILE are set correctly in idled.h will
+   have idled send a message to the users.  You will also need to
+   write your message in MAILMESSAGEFILE if you wish to use this
+   option, of course.
+
+5. Added an option, -DDISABLE_WARNS to the Makefile which will
+   prevent idled from warning users, and just go straight to
+   logging them out.  This option may be especially useful for
+   Digital Unix 3.2 and perhaps other versions, where warnings
+   prevent idled from killing anyone.  This option is a fix in
+   this condition.
+
+
+V 1.15a
+=======
+1. Mistakenly left in the CHANGES file from v1.15 that I only PLANned
+   to add code to make sure "Error in warn" was only printed once (in
+   #3), but it was actually implemented, as #11 stated.  I changed it
+   in this version to avoid confusion.
+
+2. Made changes to get Idled working properly (hopefully) under
+   BSDI BSD/OS 2.  It should hopefully compile cleanly and function
+   properly now.  More work is planned to ensure functionality.
+
+
+V 1.15
+======
+1. Slight modification to the Makefile to make note of the PS_HACK
+   kill method for BSD systems, as the standard kill method seems
+   to fail for many users.
+
+2. Changed idled.h to have NAMELEN = UT_NAMESIZE for BSD_OS2 systems,
+   and perhaps others.  Thanks to Andre Nurwono <nurwonoa@nicolas.acu.edu>
+   for informing me of the problem of NAMELEN needing to be 16 instead
+   of 8 for these systems.  Other BSD_OS2 changes include using the
+   _PATH_UTMP define so setting the UTMP_PATH in idled.h should be
+   unnecessary, and not closing fd 0 (stdin) in daemonize() since
+   idled strangely exits in yyparse() if it is closed.
+
+3. Added a timestamp to the "Error in warn" logfile message in warn.c.
+   Added in a bit of code to ensure that such errors are only printed
+   once, and not every sleep time if the utmp entry is invalid.  This
+   will help TODO #8 by making it less annoying when the utmp file
+   gets out of touch with reality (by Idled killing someone and their
+   utmp entry not getting removed).
+
+4. Fixed a bug where if no idle timeout was specified explicitly for
+   a user and no 'timeout default' was set either, then users would
+   get logged off immediately for being idle 0 seconds.
+
+5. Addition of FreeBSD system definitions to the Makefile, along
+   with a new install (install1a) that strips the executable and
+   gzips the man pages.  Also, an include file for FreeBSD was
+   added to xlock_check.c.  Thanks to Lars Koeller
+   <uphya001@odie.physik2.uni-rostock.de> for the FreeBSD info.
+
+6. 'file' type commands now allow '.' in the filenames.  This brings
+   the allowed characters in filenames specified in the config file
+   'file' commands to include the following:
+        Letters A-Z and a-z
+        Numbers 0-9
+        Characters '/', '.' and '_'.
+    I have no plans at this time to extend this further, simply
+    because I feel this to be sufficient.  If you have strong
+    desires for more allowed characters, send the requests my way.
+
+7. Added an "Unknown login name" error in the parsing of the
+   config file.  If a "login <user>" is specified in the config
+   file now and <user> is not valid on that system, idled will
+   report the error to the log file.  Note that if the user name
+   becomes valid later, that it will automatically be utilized
+   (it is stored regardless).
+
+8. All references to HAVE_UTMPX have been changed to UTMPPID,
+   since it really refered to whether or not the utmp file
+   contained the pid of the login shell.
+
+9. Added in 'from host' killing.  In addition to tty, login,
+   group, and file, limits can also be set now according to
+   the host that the user is logged in from.  Therefore,
+        timeout host dopey 5
+   will set the idle timout to 5 minutes for any user logged
+   on from dopey.  The name of the host that should be used
+   in these commands should be the same as is displayed when
+   using 'finger' to see where the person is logged on from.
+   The length of the host line, as specified in utmp.h (or
+   utmpx.h on some systems), should be the length used in idled.h
+   as HOSTLEN, if UT_HOSTSIZE is not defined on your system.
+   Note that if the host name that a user is logged on from is
+   longer than this, then it is truncated in utmp.h and must
+   be likewise trucated in the config file.  "localhost" or
+   the truncated version may be used to give commands specific
+   to users logged in locally.
+   
+   To use this feature, you must define UTMPHOST in the Makefile
+   and also have a ut_host field in utmp entries.  Some systems
+   have the ut_host field only in utmpx, and hence they must also
+   define HAVE_UTMPX to use the longer utmp entries.
+   
+   As I don't know what is needed here for different systems,
+   please let me know if I need to add one or both of these
+   defines for some systems.
+
+10. Idled now prints its version in the log file when it starts.
+
+11. Added a "check list" to help "Error in warn" messages caused
+    by a user getting killed and the system not updating the
+    utmp file to indicate the line is no longer in use.  Idled
+    now will log the error the first time it sees it for that
+    line and will not repeat the error.  As soon as the line is
+    put to use again, idled will reset the flag for the line and
+    continue normal operations.
+
+12. Added a Copyright notice which will hopefully express my
+    opinions on the subject to any who are interested.
+
+
+V 1.13
+======
+1. Restructure the machine definitions of the Makefile to localize
+   the parameters to each machine type.  Also added defines for
+   UnixWare 1.1.4.  Thanks to Michael Hancock <michaelh@cet.co.jp>
+   for the UnixWare information.
+
+2. Changed the utmplines subprogram to use the UTMP_FILE define.
+
+3. Changed the uid changing in zap.c so that it should log kills
+   correctly again (to fix bug introduced in v1.12).
+
+
+V 1.12
+======
+1. Added a new subprogram, compiled and run via 'make utmplines'.
+   It outputs the number of lines in your utmp file.  MAXUSERS,
+   defined in idled.h, should be greater than this number.
+
+2. Added a new parameter in the configuration file called
+   'idlemethod' which allows more dynamic configuration of
+   the CONSIDER_OUTPUT define.  With it, the CONSIDER_OUTPUT
+   define (which was improperly set up in the Makefile of
+   v1.11) has been removed.
+
+3. Apparently, the HP-UX settings in the Makefile work perfectly
+   for SGI Indy's, so a note of that was made.
+
+4. Fixed the BSD/OS2 compile problem in warn.c.  Changed the
+   defs in the Makefile for BSD/OS2 as well.
+
+5. Added <sys/ioctl.h> to xlock_check.c for SYSV systems.  OSF,
+   specifically, needed it.  It was something I was told of a
+   while ago and forgot to put in the last couple versions (oops).
+   Thanks to Noam Krendel <noam@ouray.cudenver.edu> for informing
+   me of the change that I forgot to include until 8 months later!
+
+6. Some clarifications were made in the man pages.
+
+7. Changed the definition of where the utmp file is.  It now looks
+   in the system include files before using its own.  Hopefully
+   this will be completely system independent.  A couple of comment
+   descriptions for DIGITAL Unix were also added in the Makefile.
+   Thanks to Thomas Kunkelmann <kunkel@ito.th-darmstadt.de> for the
+   DIGITAL Unix information.
+
+8. Fixed a bug where users could sometimes be warned for being idle
+   while they are logging in.  Idled now longer checks to see if
+   a user is idle if they have not been logged in long enough to be
+   idle.
+
+9. Added in the ability in idled.cf to specify users via a filename
+   containing a list of login names.  Valid new commands are of this
+   sort:
+
+         timeout file students 10
+         session file students 60
+         refuse file idiots
+         exempt file staff multiple
+
+   where "students", "idiots", and "staff" are the names of the files
+   containing the list of login names of those users, one per line.
+   The first word on the line is used as the login name; any spaces
+   before that name are ignored, as is any text beyond that name
+   (such that comments, if desired, can be placed at the end of the
+   lines).  Blank lines are ignored.
+   Suggestion by Ken Brown <ccksb@trentu.ca>.
+   NOTE:  Filenames at this point can contain letters A-Z and a-z,
+          numbers 0-9, '_', and '/'.  Therefore,
+                /usr/local/lib/idled/Session_Users1
+          is a valid filename, but '.' and other characters cannot
+          be used.  I'll probably change this for the next version.
+
+10. Fixed a bug where setting warntime to 0 because no warn time was
+    desired would actually give 'sleep' seconds of warn time.  Idled
+    will now kill users without any warning if warntime is <= 0.
+
+11. With the CONSIDER_OUTPUT define (ioidle = TRUE in the code), the
+    warning that idled issued the user would cause the terminal to
+    no longer be idle, thus preventing idled from ever logging the
+    user off.  Idled now only checks output from the terminal if it
+    has not yet warned the user of that terminal.
+
+12. Due to observed difficulties on Ultrix, idled now attempts to
+    "become" the user before performing the zap.  Since this is a
+    sensible way to do it anyway, all systems will do this.  Please
+    let me know if problems arise from this (for whatever reason).
+
+
+V 1.11
+======
+1. Changed the "logfile()" call in the num_uids() procedure
+   to debug(), which it should have been.  Sorry about the
+   messy addition to the log files.
+
+2. Changes to the Makefile to accomodate HP-UX better.
+   Thanks to Don Comstock <dlco@hposc003.atl.hp.com>.
+
+3. Notes in idled.h and INSTALL to indicate how to set
+   the mouse name correctly for some unices running on
+   an IBM compatible, such as Solaris x86.
+
+4. Idled used to wait until the first sleep time has passed
+   before starting idle checks.  It now checks all tty's
+   upon startup as well.
+
+5. Changed OSF/1 V3 from install1 to install3.
+
+6. Added an option to have idled determine idleness not only
+   by input from the user, but also by output from programs
+   in that terminal.  This, for example, would prevent a
+   terminal with 'top' displaying system information in it,
+   or 'ftp' displaying hash marks during a long download
+   from being considered idle.  The CONSIDER_OUTPUT define
+   in the Makefile determines which is used (and defaults
+   to input-only).
+
+7. Some additions to xlock_check and the Makefile have been
+   made to try to get idled to work completely under
+   BSD/OS2.  The changes are not yet complete.
+
+
+V 1.10
+======
+1. Minor changes to the INSTALL file.
+
+2. Changes to the Makefile, including defs for Ultrix 4.4.
+
+3. Changed the ioctl() calls in zap.c for the non UTMPPID
+   method to use tcgetattr() and tcsetattr().  Hopefully that
+   will remove system dependencies.
+
+   Also traded in the TCXONC and TIOCSTART ioctl requests
+   with a tcflow() call for the same reason, both in zap.c
+   and warn.c.
+
+4. Added the cfsetospeed() call in zap.c to eliminate the
+   slightly more ambiguous c_cflag = 0, set setting the
+   baud rate to 0 is all I really wanted from it anyway.
+
+5. Added a new terminal killing method for systems without
+   shell pid's in the utmp file.  To go with it, there is
+   now a BAD_PGRP define for such systems that unfortunately
+   do not have a useful tcgetpgrp() function that will grab
+   the pid of the controlling shell for the tty.  Ultrix
+   has a good one, so idled uses this new method.  Is Ultrix
+   the only one (such as an ULTRIX define would be better)?
+
+6. Reformatting of procedural comments to make them more
+   visible.
+
+7. Changed <termio.h> and <fcntl.h> to be in default include
+   directories instead of <sys/*>.
+
+8. Removed all system includes from the dependency lines in
+   the Makefile for the various .o's, including the old
+   obsolete includes which were no longer used and should
+   have been removed long ago.  With it, the <setjmp.h>
+   include was moved from idled.h to warn.c, which was the
+   only place using it.  Also removed "y.tab.h" from warn.c
+   and idled.c, which didn't need it.
+
+   Hopefully this will take care of any dependency differences
+   between systems.  Hence, the Makefile.linux is no longer
+   included in the distribution.  Hopefully the Linux defines
+   at the top of the normal Makefile will be sufficient.
+
+9. Removed -DPROC_SEARCH_1 from the DEFS line for Linux in
+   the Makefile.  On slackware, at least, there is no kvm
+   stuff, which is required by PROC_SEARCH_1.  I put it in
+   without confirming it in idled-1.06beta.
+
+10. Minor man page changes.  Updates to them for the new additions.
+
+11. Rewrote the MULTIPLE Timeouts such that it will allow users
+    to have more than one login if the situation is appropriate.
+    Now the behavior of multiple logouts is configurable via
+    the new "multiples #" command in the configuration file.
+    If the # is something like 3, then each user would get to
+    keep 3 ttys if the multiple threshold has been reached.
+    If the # is -1, then it will allow floor(X/(num users))
+    tty's for each user, where X is the threshold limit for
+    multiple.
+
+12. Redefined the "conswins" command.  It now is of the form:
+        conswins idle <option>
+        conswins session <option>
+        conswins multiple <option>
+    where <option> = normal, off, <number>.  Normal specifies
+    that the normal idle, session, or multiple behavior should
+    be in place for windows owned by the user on console.  Off
+    says that the respective checking should be off for those
+    windows.  A Number specifies the time allowed for idle
+    and session, or the number of multiple logins allowed.
+
+    NOTE:  Due to this change, if you had "conswins" defined
+           in your idled.cf file, you MUST redefine the
+           command for idled to properly initialize!!!
+           The appropriate change for identical action is
+                OLD LINE:       conswins <#>
+                NEW LINE:       conswins idle <#>
+
+13. Improved documentation in the Makefile about whether to
+    choose install1 or install3 on Solaris 2.x.  Suggestion
+    by Peter Turk <p.turk@cxwms.ac.uk>.
+
+14. Added a default option to session limit commands.  It is
+    now possible to define a default for anyone who does not
+    have a session limit time specified through a group, tty,
+    or login command.  A 60 minute default limit would be
+    specified like this:
+        session default 60
+    Thanks to Lincoln Chang <CHANG@svlv03.scs.philips.com>
+    for pointing out this missing capability.
+
+15. Defines added to the Makefile for BSDI.  Changes to warn.c
+    and xlock_check.c to accomodate.
+
+16. Added in an optional 'ps' hack for systems without UTMPPID.
+    The hack calls ps to get pid's for processes on the tty to kill,
+    and kills each of the processes.  Defining PS_HACK will use this
+    hack.  Thanks to Scott Gifford <swgsh@genesee.freenet.org> for
+    the original hack.
+
+17. Changed the session timeouts so that there is now the ability to
+    refuse a user who was warned/logged-out from a session limit
+    from logging in again until a specified time has elapsed.  The
+    time is specified in the config file as
+        session refuse <minutes>
+    to refuse the users from being logged in for <minutes> after being
+    warned/logged-out.  Default is no refuse time.
+
+18. Redefined the #ifdef sequence for yyrestart().  It is now assumed
+    that all systems except Linux do not have it.  If a system does,
+    defining HAVE_YYRESTART in the Makefile will fix the multiple
+    define.  Not all Linux's have the yyrestart() either, though.
+
+19. Created the Idled Homepage for the most up-to-date information on
+    idled.  The url is http://www.cs.hope.edu/~crider/idled/
+    These pages are a test base to see if users have interest in such
+    pages.
+
+
+V 1.07
+======
+1. Patches from Noam Krendel <noam@ouray.cudenver.edu>:
+        Changed PRNODEV in xlock_check.c to NODEV, which is hopefully
+                more common.
+        Made idled exit after printing version information when given
+                the -V switch.
+        Corrected my typo in idled.c to say "exiting" instead of
+                "exititing."
+
+2. Patches from Thomas Schenk <tschenk@risc.austin.ibm.com>:
+        Some Makefile changes.
+        Addition of README.aix file.
+        Added an ifndef AIX around NGROUPS in idled.h.
+        The new process search method in xlock_check.c didn't
+                work, so stuff needed to be ifndef-ed.  In
+                preparation for Thomas' third search method,
+                I added #ifdef PROC_SEARCH_1 around the second
+                method, and added it to Makefile DEFS as
+                necessary.
+
+3. Changed the paths to the CONFIG file and LOGFILE to be set in
+   the Makefile.  I want to get all configuration options to be
+   set in the Makefile, and perhaps a new config.h, if necessary.
+
+4. Simple change to the example idled.cf.  I had the timeout default
+   set to 600, which would be 600 minutes, and not the 60 minutes
+   I had intended and specified in the comments.
+
+5. Killed the SIGSYS signal trapping in idled.c.  I don't expect that
+   it will be needed; I think I just got a little trap happy.
+   Same for SIGXCPU.
+
+6. Changed my typo in warn.c to be __linux__ instead of __lunux__.
+
+7. Changed the definition of main() to old-style declarations.
+   Also changed the new strtime one in warn.c.
+
+8. Added some <sys/time.h> includes for idled.c and zap.c,
+   both for the purpose of time(), and more to please the
+   compiler when including <sys/resource.h>.
+
+9. Changed my Solaris 2.3 sigrelse() calls to signal(x, SIG_DFL).
+
+10. I finally finished my port to SunOS 4.x (and hopefully other
+    BSD type systems).  It has been tested on SunOS 4.x and does
+    work.  For a reason unknown to me, the same method has no
+    effect on Solaris 2.x.  This method currently uses SIGQUIT
+    instead of SIGKILL.  Which is better?
+
+11. Some updates to the man pages.  The two man pages are now
+    generated by doing 'make', or with 'make man'.  It simply
+    creates the real man pages with the correct path to the
+    configuration file, compliments of sed.
+
+12. Removed the include of <sys/wait.h> in zap.c.  I have no clue
+    why it was there.
+
+13. HP-UX patches to zap.c and idled.h, and updates in the Makefile
+    from Richard Allen <ra@rhi.hi.is>.
+
+14. Added another 'install' setup to the makefile, install3.
+
+15. Added an INSTALL file to the distribution.  All comments and
+    suggestions regarding improvement of this file would be
+    gratefully accepted.
+
+
+V 1.05
+======
+1. My appologies for not specifying in the original README that idled had
+   only been written and tested on Solaris 2.x.  The TODO file specified
+   that I planned to get it working on SunOS 4.1.x, and the Makefile
+   suggested that it wouldn't work under BSD, but it should have been
+   more openly announced and explained where it would work.
+
+2. Patches for HP-UX from Richard Allen <ra@os.is>:
+        Change #else NAME and #endif NAME type things to #else /* NAME */.
+        Check to see if NGROUPS is already defined.  Don't redefine it if
+                is.
+        Some #ifdef __hpux lines for includes needed for HP-UX
+        Changed "TIOCSTART" in zap.c to "TCIOSTART".  I think it is more
+                common?
+        Changed the HAVE_PROC_FS define to be in the Makefile, instead of
+                idled.h.
+        Changes to xlock_check.c to have it compile if HAVE_PROC_FS is
+                not defined.
+
+3. Ifndef-ed NGROUPS.
+
+4. Patches for Linux from Jan Niehusmann <jan@gondor.gun.de>:
+        Added a yyrestart() call after the yyparse.  Linux didn't reset
+                properly otherwise.  Wrote a dummy yyrestart() for systems
+                which don't have one in the libraries.
+        Added a linux patch to warn.c instead of termf->_ptr = termf->_base,
+                which is not portable at all.  Is there a way to make it so?
+        Added some linux ioctl calls, since it needs some different defines.
+        Tossed in some linux headers.
+        Created a linux Makefile.
+
+5. Changed function declarations in xlock_check.c to old style declaration.
+   Yuck!  I hate the old style, but anything will compile it, apparently,
+   and not all will do new style (why???).
+
+6. Changes to allow killing of users without any warnings, mainly to allow
+   killing a user who is not in X, which otherwise can lock up idled
+   (on Solaris 2.x, at least) if it tries to warn.
+   Logouts on an X Terminal should now work when the user is not in
+   X-Windows.  (Tested o.k. on Solaris 2.x.)
+
+7. Added the BSD code to xlock_check.c so that it should function on
+   BSD systems properly.
+
+8. Changed the session timeouts so that when it warns you that you
+   will have X many minutes/seconds, you will have that time.  The
+   old method had the potential of logging you off much earlier
+   than it warned (ie. 1 second) depending on how long it slept
+   after it warned.  The new version also uses the warn specification
+   from the configuration file, like idle timeouts do.
+
+9. Added an alarm 0 before the sleep() call in warn.c, so that it
+   could sleep for 5 seconds, like I wanted.  Patch information
+   from Chris Jackman <aj@sdiv.cray.com>.
+
+10. Changed warn.c to not print warning messages to the users when
+    idled is compiled in debug mode.
+
+11. Changed the console idle checking in idled.c to look only at the
+    last access time when checking CONSOLE_NAME for the console user
+    not in X.  Seemed more accurate to me to check for idle time.
+
+12. Changed the addlist() call in parse.y for refuse_cmd to also have
+    num as a parameter.  list.c uses it for find() for groups.
+    Patch by Chris Jackman <aj@sdiv.cray.com>.
+
+13. Added some signal catching so that idled can log fatal errors
+    (such as SEGV and BUS) before attempting to dump core and die.
+
+14. idled.c was doing two forks for daemonizing.  That was a little
+    silly.  It only does one now.
+
+15. Patches by Thomas Schenk <tschenk@risc.austin.ibm.com> to have
+    idled compile under AIX.
+
+16. Added some error checking in case idled is trying to keep track
+    of more users than was allotted with 'maxusers' in idled.h.
+
+
+V 1.00
+======
+Original Release.
