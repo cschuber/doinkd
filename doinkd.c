@@ -651,7 +651,7 @@ void chk_maxuser(user, n_users)
    int grpcnt = 0;
    int tgrpcnt = 0;
    
-   if (user->mgroup != 0) {
+   if (n_users && user->mgroup != 0) {
      for (i = 0; i < n_users; i++) {
 	   if ( (*pusers[i]).uid == user->uid)
           who = i;
